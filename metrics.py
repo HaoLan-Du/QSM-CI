@@ -20,11 +20,15 @@ Authors: Boyi Du <boyi.du@uq.net.au>, Ashley Stewart <ashley.stewart@uq.edu.au>
 
 import numpy as np
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import normalize
 from skimage.metrics import structural_similarity
 from skimage.metrics import normalized_mutual_information
+from skimage.metrics import normalized_root_mse
 from scipy.ndimage import gaussian_laplace
+from scipy.stats import median_abs_deviation
 from numpy.linalg import norm
 from skimage.measure import pearson_corr_coeff
+import pandas as pd 
 
 def calculate_rmse(pred_data, ref_data):
     """
@@ -43,7 +47,7 @@ def calculate_rmse(pred_data, ref_data):
         The calculated RMSE value.
 
     """
-    mse = mean_squared_error(pred_data, ref_data)
+   mse = mean_squared_error(pred_data, ref_data)
     rmse = np.sqrt(mse)
     return rmse
 
@@ -64,8 +68,7 @@ def calculate_nrmse(pred_data, ref_data):
         The calculated NRMSE value.
 
     """
-    rmse = calculate_rmse(pred_data, ref_data)
-    nrmse = rmse / np.linalg.norm(pred_data) * 100
+    nrmse = normalized_root_mse(ref_data, pred_data)
     return nrmse
 
 def calculate_hfen(pred_data, ref_data):
@@ -147,7 +150,7 @@ def calculate_gxe(pred_data, ref_data):
         The calculated GXE value.
 
     """
-    gxe = np.sqrt(np.mean((np.array(np.gradient(pred_data)) - np.array(np.gradient(ref_data))) ** 2))
+    gxe = normalized_root_mse(np.gradient(ref_data), np.gradient(pred_data))
     return gxe
 
 
@@ -207,38 +210,47 @@ def all_metrics(pred_data, ref_data, roi=None):
         (Gradient difference error).
 
     """
-    d = dict()
-
-    if roi is not None:
-        roi = np.array(roi, dtype=bool)
-        bbox = get_bounding_box(roi)
-        pred_data = pred_data[bbox]
-        ref_data = ref_data[bbox]
-        roi = roi[bbox]
-    else:
-        roi = np.ones(pred_data.shape, dtype=bool)
-
-    d['RMSE'] = calculate_rmse(pred_data[roi], ref_data[roi])
-    d['NRMSE'] = calculate_nrmse(pred_data[roi], ref_data[roi])
-    d['FHEN'] = calculate_hfen(pred_data, ref_data)  # does not flatten
-    d['MAD'] = calculate_mad(pred_data[roi], ref_data[roi])
-    d['XSIM'] = calculate_xsim(pred_data, ref_data)  # does not flatten
-    d['CC'] = pearson_corr_coeff(pred_data[roi], ref_data[roi])
-    d['NMI'] = normalized_mutual_information(pred_data[roi], ref_data[roi])
-    d['GXE'] = calculate_gxe(pred_data, ref_data)  # does not flatten
-
+    d = dict();
+    if roi is None:
+        # d['RMSE'] = calculate_rmse(pred_data, ref_data)
+        d['NRMSE'] = calculate_nrmse(pred_data, ref_data)
+        d['HFEN'] = calculate_hfen(pred_data, ref_data)
+        d['XSIM'] = 0.5 * calculate_xsim(pred_data, ref_data)+1
+        d['MAD'] = calculate_mad(pred_data, ref_data)
+        d['CC'] = 0.5 * pearson_corr_coeff(pred_data, ref_data)[0] + 1
+        d['NMI'] = normalized_mutual_information(pred_data, ref_data)
+        d['GXE'] = calculate_gxe(pred_data, ref_data)    
     return d
 
 if __name__ == "__main__":
     
     # get command-line arguments
     # ... - argparse (python module; e.g. import argparse)
+    # If enter command line manually, check if the command line legal
+    # get tested algorithm name
+    # get file paths
+    parser = argparse.ArgumentParser(description='Calculating metrics')
+    parser.add_argument('file_paths', metavar='file', type=str, nargs='+',
+                        help='Paths to input files')
+    args = parser.parse_args()
+    for file_path in args.file_paths:
+        print(f'Processing file: {file_path}')
+    
     
     # load nifti images (ground truth + recon) - should for all ground truth images and all reconstructions
-    # ...
+    # Algorithms' output
+    # Ground true
+    # mask
+    # seg
+
+    # preprocessing data
+    # overall result of tested algorithm and ground
+    # Region of interest of tested algorithm and ground
+    # make dataframe
     
     # do metrics
     # ...
+
     
     # generate figures
     # ...

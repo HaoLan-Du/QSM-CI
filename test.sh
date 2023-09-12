@@ -55,7 +55,7 @@ tree recons/
 
 # run metrics + generate figure - pass command-line arguments
 # python metrics.py bids/ recons/
-
+python metrics.py sub-1_ses-1_run-1_echo-1_part-phase_MEGRE_romeo-b0map_normalized_vsharp_rts.nii
 # display figure to github
 # ...
 
